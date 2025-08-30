@@ -12,11 +12,12 @@ import {
   Platform,
   useWindowDimensions,
 } from "react-native";
-import axios from "axios";
+import API from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BookCard from "../components/BookCard";
+import Navbar from "../components/navbar";
 
-const API_URL = "https://librovia-backend.onrender.com";
+// Use centralized API instance (base configured in app/services/api.js)
 
 export default function UserDashboard() {
   const [books, setBooks] = useState([]);
@@ -54,12 +55,17 @@ export default function UserDashboard() {
       const headers = tokenFromStorage
         ? { Authorization: `Bearer ${tokenFromStorage}` }
         : {};
-      const res = await axios.get(API_URL, { headers });
+      const res = await API.get("/books", { headers });
       const data = res.data;
-      const list = Array.isArray(data) ? data : data.books || [];
+      const list = Array.isArray(data) ? data : data.books || data.data || [];
       setBooks(list);
     } catch (err) {
-      console.warn("Failed to fetch books", err.message || err);
+      console.warn(
+        "Failed to fetch books",
+        err.message || err,
+        err.response?.status,
+        err.response?.data || err
+      );
       setBooks([]);
       if (
         err.response &&
@@ -101,7 +107,7 @@ export default function UserDashboard() {
     setAdding(true);
     try {
       const tokenFromStorage = (await AsyncStorage.getItem("token")) || token;
-      await axios.post(API_URL, newBook, {
+      await API.post("/books", newBook, {
         headers: tokenFromStorage
           ? { Authorization: `Bearer ${tokenFromStorage}` }
           : {},
@@ -156,7 +162,8 @@ export default function UserDashboard() {
       : { elevation: 4 };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: 72 }]}>
+      <Navbar />
       <Text style={styles.header}>Books</Text>
       <TextInput
         style={styles.search}
