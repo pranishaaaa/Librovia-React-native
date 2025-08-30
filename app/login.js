@@ -9,8 +9,8 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as authService from "./services/authService";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -25,35 +25,30 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:8000/api/login", {
-        email,
-        password,
-      });
+      const data = await authService.login(email, password);
       setLoading(false);
-      if (res.data && res.data.user) {
-       
+      if (data && data.user) {
         try {
-          if (res.data.token)
-            await AsyncStorage.setItem("token", res.data.token);
-          await AsyncStorage.setItem("user", JSON.stringify(res.data.user));
+          if (data.token) await AsyncStorage.setItem("token", data.token);
+          await AsyncStorage.setItem("user", JSON.stringify(data.user));
         } catch (e) {
           console.warn("Failed to persist auth:", e);
         }
-        const role = (res.data.user.role || "").toString().toLowerCase();
+        const role = (data.user.role || "").toString().toLowerCase();
         if (role === "librarian") {
           router.push("/dashboard/adminDashboard");
         } else {
           router.push("/dashboard/userDashboard");
         }
       } else {
-        Alert.alert("Login failed", res.data.message || "Unknown error");
+        Alert.alert("Login failed", data.message || "Unknown error");
       }
     } catch (error) {
       setLoading(false);
-      Alert.alert(
-        "Login failed",
-        error.response?.data?.message || error.message
-      );
+      console.warn("Login error", error);
+      const message =
+        error.response?.data?.message || error.message || "Network error";
+      Alert.alert("Login failed", message);
     }
   };
 
@@ -86,6 +81,7 @@ export default function LoginScreen() {
           )}
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
+        {/* Removed registration link to show login only */}
       </View>
     </View>
   );

@@ -6,9 +6,32 @@ export default function Index() {
   const router = useRouter();
 
   useEffect(() => {
-    // Replace the index route with the login screen so signup is not reachable
-    router.replace("/login");
-  }, []);
+    // Delay navigation until after the root navigator has mounted.
+    // requestAnimationFrame ensures we run after the first paint; fallback to setTimeout.
+    const navigate = () => {
+      try {
+        router.replace("/login");
+      } catch (e) {
+        // swallow any early navigation errors and try again shortly
+        setTimeout(() => {
+          try {
+            router.replace("/login");
+          } catch (err) {
+            // last resort: do nothing
+          }
+        }, 100);
+      }
+    };
+
+    let rafId;
+    if (typeof requestAnimationFrame === "function") {
+      rafId = requestAnimationFrame(navigate);
+      return () => cancelAnimationFrame(rafId);
+    }
+
+    const id = setTimeout(navigate, 50);
+    return () => clearTimeout(id);
+  }, [router]);
 
   return (
     <View style={styles.container}>

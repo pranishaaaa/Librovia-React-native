@@ -12,7 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import axios from "axios";
 
-const API_URL = "http://localhost:8000/api/books";
+const API_URL = "https://librovia-backend.onrender.com";
 
 export default function AdminDashboard({ user }) {
   const router = useRouter();

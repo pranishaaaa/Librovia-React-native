@@ -10,11 +10,13 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import BookCard from "../components/BookCard";
 
-const API_URL = "http://localhost:8000/api/books";
+const API_URL = "https://librovia-backend.onrender.com";
 
 export default function UserDashboard() {
   const [books, setBooks] = useState([]);
@@ -115,12 +117,32 @@ export default function UserDashboard() {
     }
   };
 
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Responsive grid calculation
+  const containerHorizontalPadding = 32; // sum of left+right container padding (styles.container uses 16)
+  const availableWidth = Math.max(
+    320,
+    screenWidth - containerHorizontalPadding
+  );
+  const gap = 16; // space between cards
+  const minCardWidth = 150; // minimum width for a card
+  let numColumns = Math.floor((availableWidth + gap) / (minCardWidth + gap));
+  if (numColumns < 1) numColumns = 1;
+  if (numColumns > 4) numColumns = 4;
+  const itemWidth = Math.floor(
+    (availableWidth - gap * (numColumns - 1)) / numColumns
+  );
+
   const renderItem = ({ item }) => (
-    <View style={[styles.bookCard, webShadow]}>
-      <Text style={styles.bookTitle}>{item.title || "Untitled"}</Text>
-      <Text style={styles.bookAuthor}>{item.author || "Unknown"}</Text>
-      <Text style={styles.bookIsbn}>ISBN: {item.isbn || item._id || "-"}</Text>
-    </View>
+    <BookCard
+      isbn={item.isbn || item._id}
+      title={item.title}
+      coverImage={item.coverImage || item.cover || null}
+      author={item.author}
+      availableBooks={item.availableBooks ?? item.quantity ?? 0}
+      width={itemWidth}
+    />
   );
 
   // web-friendly shadow (boxShadow) vs native elevation
@@ -159,7 +181,15 @@ export default function UserDashboard() {
                 : String(idx)
           }
           renderItem={renderItem}
-          contentContainerStyle={styles.list}
+          numColumns={numColumns}
+          columnWrapperStyle={{
+            justifyContent: "space-between",
+            paddingHorizontal: 12,
+          }}
+          contentContainerStyle={[
+            styles.list,
+            { paddingTop: 8, paddingBottom: 24 },
+          ]}
         />
       )}
 
@@ -234,17 +264,6 @@ const styles = StyleSheet.create({
   center: { justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 8, color: "#6b7280" },
   list: { paddingBottom: 24 },
-  bookCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  bookTitle: { fontSize: 16, fontWeight: "600" },
-  bookAuthor: { color: "#6b7280", marginTop: 4 },
-  bookIsbn: { color: "#9ca3af", marginTop: 6, fontSize: 12 },
   addBtn: {
     position: "absolute",
     bottom: 24,
